@@ -27,10 +27,80 @@ except ImportError:
 import struct
 from warnings import warn
 import numpy as np
+from collections import namedtuple
 
 param_group_elname = "referenceableParamGroup"
 data_processing_elname = "dataProcessing"
 instrument_confid_elname = "instrumentConfiguration"
+
+Spectrum = namedtuple('Spectrum', 'index coords mz_len mz_offset mz_enc_len int_len int_offset int_enc_len')
+
+class IBDSpeedParser:
+    '''if the ibd file is in continuous mode and the intensity data is not compressed speed mode can be used'''
+
+class IBDParser:
+    pass
+
+class IBDMemoryParser:
+    '''load the entire .ibd file into memory for fast access'''
+
+class MetaParser():
+    '''parse a .imzML file
+
+    :param filename:
+            name of the XML file. Must end with .imzML.
+    '''
+    def __init__(self, filename):
+        """This method reads only a subset of the available meta information and may be extended in the future. The keys
+        are named similarly to the imzML names. Currently supported keys: "max dimension x", "max dimension y",
+        "pixel size x", "pixel size y", "matrix solution concentration", "wavelength", "focus diameter x",
+        "focus diameter y", "pulse energy", "pulse duration", "attenuation".
+
+        If a key is not found in the XML tree, it will not be in the dict either.
+
+        :return d:
+            dict containing above mentioned meta data
+        :rtype:
+            dict
+        :raises Warning:
+            if an xml attribute has a number format different from the imzML specification
+        """
+        d = {}
+        scan_settings_list_elem = self.root.find('%sscanSettingsList' % self.sl)
+        instrument_config_list_elem = self.root.find('%sinstrumentConfigurationList' % self.sl)
+        supportedparams1 = [("max count of pixels x", int), ("max count of pixels y", int),
+                            ("max dimension x", int), ("max dimension y", int), ("pixel size x", float),
+                            ("pixel size y", float), ("matrix solution concentration", float)]
+        supportedparams2 = [("wavelength", float),
+                            ("focus diameter x", float), ("focus diameter y", float), ("pulse energy", float),
+                            ("pulse duration", float), ("attenuation", float)]
+        supportedaccessions1 = [("IMS:1000042", "value"), ("IMS:1000043", "value"),
+                                ("IMS:1000044", "value"), ("IMS:1000045", "value"),
+                                ("IMS:1000046", "value"), ("IMS:1000047", "value"), ("MS:1000835", "value")]
+        supportedaccessions2 = [("MS:1000843", "value"), ("MS:1000844", "value"),
+                                ("MS:1000845", "value"), ("MS:1000846", "value"), ("MS:1000847", "value"),
+                                ("MS:1000848", "value")]
+        for i in range(len(supportedparams1)):
+            acc, attr = supportedaccessions1[i]
+            elem = scan_settings_list_elem.find('.//%scvParam[@accession="%s"]' % (self.sl, acc))
+            if elem is None:
+                break
+            name, T = supportedparams1[i]
+            try:
+                d[name] = T(elem.attrib[attr])
+            except ValueError:
+                warn(Warning('Wrong data type in XML file. Skipped attribute "%s"' % name))
+        for i in range(len(supportedparams2)):
+            acc, attr = supportedaccessions2[i]
+            elem = instrument_config_list_elem.find('.//%scvParam[@accession="%s"]' % (self.sl, acc))
+            if elem is None:
+                break
+            name, T = supportedparams2[i]
+            try:
+                d[name] = T(elem.attrib[attr])
+            except ValueError:
+                warn(Warning('Wrong data type in XML file. Skipped attribute "%s"' % name))
+        return d
 
 
 class ImzMLParser:
@@ -292,6 +362,10 @@ class ImzMLParser:
         self.m.seek(offsets[1])
         intensity_string = self.m.read(lengths[1])
         return mz_string, intensity_string
+
+    def get_eic(self, mz_value, tol=0.1, z=None, reduce_func=max):
+        pass
+
 
 
 def getionimage(p, mz_value, tol=0.1, z=None, reduce_func=sum):

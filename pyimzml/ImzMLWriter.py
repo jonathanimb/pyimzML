@@ -117,7 +117,7 @@ class MaxlenDict(OrderedDict):
             self.popitem(0) #pop oldest
         OrderedDict.__setitem__(self, key, value)
 
-Spectrum = namedtuple('Spectrum', 'coords mz_len mz_offset mz_enc_len int_len int_offset int_enc_len')
+Spectrum = namedtuple('Spectrum', 'index coords mz_len mz_offset mz_enc_len int_len int_offset int_enc_len')
 
 class ImzMLWriter(object):
     def __init__(self, output_filename,
@@ -272,7 +272,7 @@ class ImzMLWriter(object):
 
         int_offset, int_len, int_enc_len = self._encode_and_write(intensities, self.intensity_dtype, self.intensity_compression)
 
-        s = Spectrum(coords, mz_len, mz_offset, mz_enc_len, int_len, int_offset, int_enc_len)
+        s = Spectrum(0, coords, mz_len, mz_offset, mz_enc_len, int_len, int_offset, int_enc_len)
         self.spectra.append(s)
 
     def close(self): #'close' is a more common use for this
