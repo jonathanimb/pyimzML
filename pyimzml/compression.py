@@ -1,7 +1,11 @@
 
 import zlib
 
-class NoCompression(object):
+class Compression(object):
+    def __repr__(self):
+        return type(self).__name__ + "()"
+
+class NoCompression(Compression):
     name = "no compression"
 
     def rounding(self, data):
@@ -13,8 +17,7 @@ class NoCompression(object):
     def decompress(self, bytes):
         return bytes
 
-
-class ZlibCompression(object):
+class ZlibCompression(Compression):
     name = "zlib compression"
 
     def __init__(self, round_amt=None):
